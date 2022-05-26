@@ -24,7 +24,22 @@ public readonly ref struct MapFeatureData
     public GeometryType Type { get; init; }
     public ReadOnlySpan<char> Label { get; init; }
     public ReadOnlySpan<Coordinate> Coordinates { get; init; }
-    public Dictionary<string, string> Properties { get; init; }
+    public enum propertyTypes
+    {
+        highway = 0,
+        water = 1,
+        boundary = 2,
+        admin_level = 3,
+        place = 4,
+        railway = 5,
+        natural = 6,
+        landuse = 7,
+        building = 8,
+        leisure = 9,
+        amenity = 10,
+        name = 11
+    }
+    public Dictionary<propertyTypes, string> Properties { get; init; }
 }
 
 /// <summary>
@@ -150,6 +165,7 @@ public unsafe class DataFile : IDisposable
             return;
         }
 
+        var propertyTypesList = MapFeatureData.propertyTypes.GetNames(typeof(MapFeatureData.propertyTypes));
         var tiles = TiligSystem.GetTilesForBoundingBox(b.MinLat, b.MinLon, b.MaxLat, b.MaxLon);
         for (var i = 0; i < tiles.Length; ++i)
         {
@@ -181,11 +197,25 @@ public unsafe class DataFile : IDisposable
 
                 if (isFeatureInBBox)
                 {
-                    var properties = new Dictionary<string, string>(feature->PropertyCount);
+                    var properties = new Dictionary<MapFeatureData.propertyTypes, string>(feature->PropertyCount);
                     for (var p = 0; p < feature->PropertyCount; ++p)
                     {
                         GetProperty(header.Tile.Value.StringsOffsetInBytes, header.Tile.Value.CharactersOffsetInBytes, p * 2 + feature->PropertiesOffset, out var key, out var value);
-                        properties.Add(key.ToString(), value.ToString());
+                        var keyString = key.ToString();
+                        var keyToSave = propertyTypesList.FirstOrDefault(enumEntry => keyString.StartsWith(enumEntry));
+                        if (keyToSave != null)
+                        {
+                            try
+                            {
+                                MapFeatureData.propertyTypes keyEnum = (MapFeatureData.propertyTypes)Enum.Parse(typeof(MapFeatureData.propertyTypes), keyToSave);
+                                properties.Add(keyEnum, value.ToString());
+                            }
+                            catch (Exception e)
+                            {
+                                //key ignored in case of any type of parsing failure
+                                continue;
+                            }
+                        }
                     }
 
                     if (!action(new MapFeatureData
