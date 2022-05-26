@@ -39,7 +39,73 @@ public readonly ref struct MapFeatureData
         amenity = 10,
         name = 11
     }
-    public Dictionary<propertyTypes, string> Properties { get; init; }
+    public struct propertyValuesStruct
+    {
+        public enum propertyValues
+        {
+            forest = 0,
+            administrative = 1,
+            two = 2,
+            city = 3,
+            town = 4,
+            locality = 5,
+            hamlet = 6,
+            orchard = 7,
+            cemetery = 8,
+            industrial = 9,
+            commercial = 10,
+            square = 11,
+            construction = 12,
+            military = 13,
+            quarry = 14,
+            brownfield = 15,
+            farm = 16,
+            meadow = 17,
+            grass = 18,
+            greenfield = 19,
+            recreation_ground = 20,
+            winter_sports = 21,
+            allotments = 23,
+            reservoir = 24,
+            basin = 25,
+            motorway = 26,
+            trunk = 27,
+            primary = 28,
+            secondary = 29,
+            tertiary = 30,
+            unclassified = 31,
+            road = 32,
+            fell = 33,
+            grassland = 34,
+            heath = 35,
+            moor = 36,
+            scrub = 37,
+            wetland = 38,
+            wood = 39,
+            tree_row = 40,
+            bare_rock = 41,
+            rock = 42,
+            scree = 43,
+            beach = 44,
+            sand = 45,
+            water = 46,
+            none = 47,
+            residential = 48,
+            stream = 49,
+            river = 50
+        };
+
+        public propertyValues propertiesValues { get; private set; }
+
+        public string name { get; private set; }
+
+        public propertyValuesStruct(propertyValues values, string name) : this()
+        {
+            this.propertiesValues = values;
+            this.name = name;
+        }
+    }
+    public Dictionary<propertyTypes, propertyValuesStruct> Properties { get; init; }
 }
 
 /// <summary>
@@ -166,6 +232,7 @@ public unsafe class DataFile : IDisposable
         }
 
         var propertyTypesList = MapFeatureData.propertyTypes.GetNames(typeof(MapFeatureData.propertyTypes));
+        var propertyValuesList = MapFeatureData.propertyValuesStruct.propertyValues.GetNames(typeof(MapFeatureData.propertyValuesStruct.propertyValues));
         var tiles = TiligSystem.GetTilesForBoundingBox(b.MinLat, b.MinLon, b.MaxLat, b.MaxLon);
         for (var i = 0; i < tiles.Length; ++i)
         {
@@ -197,23 +264,26 @@ public unsafe class DataFile : IDisposable
 
                 if (isFeatureInBBox)
                 {
-                    var properties = new Dictionary<MapFeatureData.propertyTypes, string>(feature->PropertyCount);
+                    var properties = new Dictionary<MapFeatureData.propertyTypes, MapFeatureData.propertyValuesStruct>(feature->PropertyCount);
                     for (var p = 0; p < feature->PropertyCount; ++p)
                     {
                         GetProperty(header.Tile.Value.StringsOffsetInBytes, header.Tile.Value.CharactersOffsetInBytes, p * 2 + feature->PropertiesOffset, out var key, out var value);
-                        var keyString = key.ToString();
-                        var keyToSave = propertyTypesList.FirstOrDefault(enumEntry => keyString.StartsWith(enumEntry));
-                        if (keyToSave != null)
+                        if (Enum.TryParse<MapFeatureData.propertyTypes>(key, out var keyEnum))
                         {
-                            try
+                            if (Enum.TryParse<MapFeatureData.propertyValuesStruct.propertyValues>(value, out var valueEnum))
                             {
-                                MapFeatureData.propertyTypes keyEnum = (MapFeatureData.propertyTypes)Enum.Parse(typeof(MapFeatureData.propertyTypes), keyToSave);
-                                properties.Add(keyEnum, value.ToString());
+                                if(!properties.ContainsKey(keyEnum))
+                                {
+                                    properties.Add(keyEnum, new MapFeatureData.propertyValuesStruct(valueEnum, ""));
+                                }
                             }
-                            catch (Exception e)
+                            else if (value == "2")
                             {
-                                //key ignored in case of any type of parsing failure
-                                continue;
+                                properties.Add(keyEnum, new MapFeatureData.propertyValuesStruct(MapFeatureData.propertyValuesStruct.propertyValues.two, ""));
+                            }
+                            else if (value == "name")
+                            {
+                                properties.Add(keyEnum, new MapFeatureData.propertyValuesStruct(MapFeatureData.propertyValuesStruct.propertyValues.none, value.ToString()));
                             }
                         }
                     }

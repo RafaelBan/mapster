@@ -15,19 +15,17 @@ public static class TileRenderer
         var featureType = feature.Type;
         var foundBoundary = false;
         var foundLevel = false;
-        bool stoppingCondition = false;
         ReadOnlySpan<Coordinate> coordinates = feature.Coordinates;
         foreach (var entry in feature.Properties)
         {
             switch (entry.Key)
             {
                 case MapFeatureData.propertyTypes.highway:
-                    if (MapFeature.HighwayTypes.Any(type => entry.Value.StartsWith(type)))
+                    if (((int)entry.Value.propertiesValues >= 26 && (int)entry.Value.propertiesValues <= 32) || (int)entry.Value.propertiesValues == 48)
                     {
                         var road = new Road(coordinates);
                         baseShape = road;
                         shapes.Enqueue(road, road.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
@@ -37,19 +35,17 @@ public static class TileRenderer
                         var waterway = new Waterway(coordinates, feature.Type == GeometryType.Polygon);
                         baseShape = waterway;
                         shapes.Enqueue(waterway, waterway.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
                 case MapFeatureData.propertyTypes.boundary:
-                    if (entry.Value.StartsWith("forest"))
+                    if (entry.Value.propertiesValues == MapFeatureData.propertyValuesStruct.propertyValues.forest)
                     {
                         var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Forest);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
-                    else if (entry.Value.StartsWith("administrative"))
+                    else if (entry.Value.propertiesValues == MapFeatureData.propertyValuesStruct.propertyValues.administrative)
                     {
                         foundBoundary = true;
                         if (foundBoundary && foundLevel)
@@ -57,13 +53,12 @@ public static class TileRenderer
                             var border = new Border(coordinates);
                             baseShape = border;
                             shapes.Enqueue(border, border.ZIndex);
-                            stoppingCondition = true;
                         }
                     }
                     break;
 
                 case MapFeatureData.propertyTypes.admin_level:
-                    if (entry.Value == "2")
+                    if (entry.Value.propertiesValues == MapFeatureData.propertyValuesStruct.propertyValues.two)
                     {
                         foundLevel = true;
                         if (foundBoundary && foundLevel)
@@ -71,19 +66,16 @@ public static class TileRenderer
                             var border = new Border(coordinates);
                             baseShape = border;
                             shapes.Enqueue(border, border.ZIndex);
-                            stoppingCondition = true;
                         }
                     }
                     break;
 
                 case MapFeatureData.propertyTypes.place:
-                    if (entry.Value.StartsWith("city") || entry.Value.StartsWith("town") ||
-                        entry.Value.StartsWith("locality") || entry.Value.StartsWith("hamlet"))
+                    if ((int)entry.Value.propertiesValues >= 3 && (int)entry.Value.propertiesValues <= 6)
                     {
                         var popplace = new PopulatedPlace(coordinates, feature);
                         baseShape = popplace;
                         shapes.Enqueue(popplace, popplace.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
@@ -91,7 +83,6 @@ public static class TileRenderer
                     var railway = new Railway(coordinates);
                     baseShape = railway;
                     shapes.Enqueue(railway, railway.ZIndex);
-                    stoppingCondition = true;
                     break;
 
                 case MapFeatureData.propertyTypes.natural:
@@ -100,47 +91,36 @@ public static class TileRenderer
                         var geoFeature = new GeoFeature(coordinates, feature);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
                 case MapFeatureData.propertyTypes.landuse:
-                    if (entry.Value.StartsWith("forest") || entry.Value.StartsWith("orchard"))
+                    if (entry.Value.propertiesValues == MapFeatureData.propertyValuesStruct.propertyValues.forest ||
+                        entry.Value.propertiesValues == MapFeatureData.propertyValuesStruct.propertyValues.orchard)
                     {
                         var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Forest);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
                     else if (feature.Type == GeometryType.Polygon)
                     {
-                        if (entry.Value.StartsWith("residential") || entry.Value.StartsWith("cemetery") ||
-                            entry.Value.StartsWith("industrial") || entry.Value.StartsWith("commercial") ||
-                            entry.Value.StartsWith("square") || entry.Value.StartsWith("construction") ||
-                            entry.Value.StartsWith("military") || entry.Value.StartsWith("quarry") ||
-                            entry.Value.StartsWith("brownfield"))
+                        if (((int)entry.Value.propertiesValues >= 8 && (int)entry.Value.propertiesValues <= 15) || (int)entry.Value.propertiesValues == 48)
                         {
                             var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Residential);
                             baseShape = geoFeature;
                             shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                            stoppingCondition = true;
                         }
-                        else if (entry.Value.StartsWith("farm") || entry.Value.StartsWith("meadow") ||
-                                 entry.Value.StartsWith("grass") || entry.Value.StartsWith("greenfield") ||
-                                 entry.Value.StartsWith("recreation_ground") || entry.Value.StartsWith("winter_sports") ||
-                                 entry.Value.StartsWith("allotments"))
+                        else if ((int)entry.Value.propertiesValues >= 16 && (int)entry.Value.propertiesValues <= 23)
                         {
                             var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Plain);
                             baseShape = geoFeature;
                             shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                            stoppingCondition = true;
                         }
-                        else if (entry.Value.StartsWith("reservoir") || entry.Value.StartsWith("basin"))
+                        else if (((int)entry.Value.propertiesValues >= 24 && (int)entry.Value.propertiesValues <= 25) || (int)entry.Value.propertiesValues == 49)
                         {
                             var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Water);
                             baseShape = geoFeature;
                             shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                            stoppingCondition = true;
                         }
                     }
                     break;
@@ -151,7 +131,6 @@ public static class TileRenderer
                         var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Residential);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
@@ -161,7 +140,6 @@ public static class TileRenderer
                         var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Residential);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
@@ -171,14 +149,12 @@ public static class TileRenderer
                         var geoFeature = new GeoFeature(coordinates, GeoFeature.GeoFeatureType.Residential);
                         baseShape = geoFeature;
                         shapes.Enqueue(geoFeature, geoFeature.ZIndex);
-                        stoppingCondition = true;
                     }
                     break;
 
                 default:
                     break;
             }
-            if (stoppingCondition) break;
         }
 
         if (baseShape != null)

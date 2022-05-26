@@ -110,37 +110,26 @@ public struct GeoFeature : BaseShape
         IsPolygon = feature.Type == GeometryType.Polygon;
         var naturalKey = feature.Properties.FirstOrDefault(x => x.Key == MapFeatureData.propertyTypes.natural).Value;
         Type = GeoFeatureType.Unknown;
-        if (naturalKey != null)
+        if (((int)naturalKey.propertiesValues >= 33 && (int)naturalKey.propertiesValues <= 38) ||
+            (int)naturalKey.propertiesValues == 18)
         {
-            if (naturalKey == "fell" ||
-                naturalKey == "grassland" ||
-                naturalKey == "heath" ||
-                naturalKey == "moor" ||
-                naturalKey == "scrub" ||
-                naturalKey == "wetland")
-            {
-                Type = GeoFeatureType.Plain;
-            }
-            else if (naturalKey == "wood" ||
-                     naturalKey == "tree_row")
-            {
-                Type = GeoFeatureType.Forest;
-            }
-            else if (naturalKey == "bare_rock" ||
-                     naturalKey == "rock" ||
-                     naturalKey == "scree")
-            {
-                Type = GeoFeatureType.Mountains;
-            }
-            else if (naturalKey == "beach" ||
-                     naturalKey == "sand")
-            {
-                Type = GeoFeatureType.Desert;
-            }
-            else if (naturalKey == "water")
-            {
-                Type = GeoFeatureType.Water;
-            }
+            Type = GeoFeatureType.Plain;
+        }
+        else if ((int)naturalKey.propertiesValues == 39 || (int)naturalKey.propertiesValues == 40)
+        {
+            Type = GeoFeatureType.Forest;
+        }
+        else if ((int)naturalKey.propertiesValues >= 41 && (int)naturalKey.propertiesValues <= 43)
+        {
+            Type = GeoFeatureType.Mountains;
+        }
+        else if ((int)naturalKey.propertiesValues == 44 || (int)naturalKey.propertiesValues == 45)
+        {
+            Type = GeoFeatureType.Desert;
+        }
+        else if ((int)naturalKey.propertiesValues == 46 || (int)naturalKey.propertiesValues == 50)
+        {
+            Type = GeoFeatureType.Water;
         }
 
         ScreenCoordinates = new PointF[c.Length];
@@ -202,7 +191,7 @@ public struct PopulatedPlace : BaseShape
         for (var i = 0; i < c.Length; i++)
             ScreenCoordinates[i] = new PointF((float)MercatorProjection.lonToX(c[i].Longitude),
                 (float)MercatorProjection.latToY(c[i].Latitude));
-        var name = feature.Properties.FirstOrDefault(x => x.Key == MapFeatureData.propertyTypes.name).Value;
+        var name = feature.Properties.FirstOrDefault(x => x.Key == MapFeatureData.propertyTypes.name).Value.name;
 
         if (feature.Label.IsEmpty)
         {
